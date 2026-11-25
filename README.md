@@ -112,13 +112,16 @@ happen to be composite.
 
 - counterexamples should be **rare but never stop**: the expected number in [10ᵏ, 10ᵏ⁺¹) is of
   order one and grows slowly with k;
-- the binomial form of the model predicts about 1.6 counterexamples in [1.5·10⁸, 10¹²); we found 1.
+- the model predicts about 1.6 counterexamples per conjecture in [1.5·10⁸, 10¹²). We found 1 for
+  A157218, and 4 for its sister A157225: 1433987797 (known since 2026) and three new ones,
+  45483661477, 85305551767 and 367084269651.
 
 This is a heuristic, not a theorem. The model is exponentially sensitive to second-order choices
 (reasonable variants give between 0.1 and 6), so only its qualitative message should be trusted.
-**We do not know how to prove that there are infinitely many counterexamples.** A covering-congruence
-proof in the style of Erdős and Crocker would need to cover all pairs (a, b), which seems out of
-reach; even for the classical form p + 2ᵃ + 2ᵇ, a positive proportion of exceptions is not known.
+**We do not know how to prove that there are infinitely many counterexamples.** The known proofs
+for the classical form p + 2ᵃ + 2ᵇ (Crocker 1971; Pan 2011) rely on the factorisation of 2ᵃ + 2ᵇ,
+which has no obvious analogue for 2ˣ + 7·2ʸ, and a covering-congruence proof in the style of Erdős
+would have to cover all pairs (a, b).
 
 ## Files
 
@@ -128,10 +131,11 @@ reach; even for the classical form p + 2ᵃ + 2ᵇ, a positive proportion of exc
 | `certificate/445466268731.txt` | A prime factor for each of the 342 candidates |
 | `search/` | The search engine, its definitions, tests, and the log of the run to 10¹² |
 | `analysis/structure.py` | Local-density analysis and the heuristic count of counterexamples |
+| `paper/` | A short write-up: `paper.pdf` and its LaTeX source |
 
 ## Credits
 
-Found on 25 November 2026 by Yotam ([@yotam1001](https://github.com/yotam1001)) and collaborators.
+Found on 25 November 2026 by Yotam Moshe, Idan Gan Levi, Ohav Betito, Boaz Cohen and Shay Gez Akiva.
 The search code, the analysis and this write-up were produced with Claude (Anthropic) as an AI
 assistant; every claim above is backed by code in this repository that you can run.
 

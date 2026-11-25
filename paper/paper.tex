@@ -1,0 +1,329 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.6cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{heuristic}[theorem]{Heuristic}
+\newtheorem{question}[theorem]{Question}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\mz}{m_0}
+\newcommand{\ord}{\operatorname{ord}}
+
+\title{A counterexample to a conjecture of Zhi-Wei Sun\\ on sums of a prime and two powers of two}
+\author{Yotam Moshe \and Idan Gan Levi \and Ohav Betito \and Boaz Cohen \and Shay Gez Akiva}
+\date{25 November 2026 \quad (draft)}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+In 2009 Zhi-Wei Sun conjectured that every odd integer greater than $34$ can be written as
+$p+2^x+7\cdot 2^y$ with $p$ a prime congruent to $1$ modulo $6$ and $x,y$ positive integers
+(OEIS A157218). We show that the conjecture is false: $445466268731$ has no such representation,
+and it is the only counterexample below $10^{12}$. The proof of non-representability is a table
+of $342$ explicit prime factors. For the sister conjecture with $p\equiv 5 \pmod 6$ (A157225),
+disproved in 2026, we determine all four counterexamples below $10^{12}$. We describe the search
+algorithm, a bit-parallel sieve that tests about $4\cdot 10^{9}$ integers per second on a desktop
+computer, explain which arithmetic features make $445466268731$ exceptional, and give a heuristic
+model that predicts the observed number of counterexamples and suggests that there are infinitely many.
+\end{abstract}
+
+\section{Introduction}
+
+Romanoff proved in 1934 that a positive proportion of the integers are of the form $p+2^k$, and
+Erd\H{o}s~\cite{erdos} used covering congruences to exhibit an arithmetic progression of odd numbers
+none of which has this form. Allowing two powers of two, Crocker~\cite{crocker} showed that there are
+still infinitely many odd integers not of the form $p+2^a+2^b$, and Pan~\cite{pan} gave a
+quantitative version. In 2009 Sun~\cite{sun} asked what happens when one of the powers is
+multiplied by a small odd constant, and recorded a family of conjectures in the OEIS~\cite{oeis},
+among them the following two.
+
+\medskip
+\noindent\textbf{Conjecture A157218} (Sun, 24 February 2009). \emph{Every odd integer $m>34$ can be
+written as $m=p+2^x+7\cdot 2^y$ with $p$ a prime, $p\equiv 1 \pmod 6$, and integers $x,y\ge 1$.}
+
+\medskip
+\noindent\textbf{Conjecture A157225} (Sun, 24 February 2009). \emph{Every odd integer $m>20$ other
+than $25$, $31$ and $1983$ can be written as $m=p+2^x+7\cdot 2^y$ with $p$ a prime,
+$p\equiv 5 \pmod 6$, and integers $x,y\ge 1$.}
+
+\medskip
+Both were verified for $m<1.5\cdot 10^{8}$ by Sun and Q.-H.~Hou. In 2026 Adamczewski~\cite{oeisopen}
+reported, as part of a benchmark in which language models attempt open OEIS conjectures, that
+A157225 fails at $m=1433987797$. Conjecture A157218 was not part of that benchmark and remained open.
+
+\begin{theorem}\label{thm:main}
+The odd integer
+\[
+  \mz \;=\; 445466268731 \;=\; 11^{3}\cdot 2999\cdot 111599
+\]
+cannot be written as $p+2^x+7\cdot 2^y$ with $p$ a prime congruent to $1$ modulo $6$ and $x,y\ge 1$.
+Hence Conjecture A157218 is false.
+\end{theorem}
+
+\begin{theorem}[computational]\label{thm:search}
+\begin{enumerate}
+\item[(i)] $\mz$ is the only odd integer $m$ with $34<m<10^{12}$ that is not of the form
+$p+2^x+7\cdot 2^y$ with $p\equiv 1 \pmod 6$ prime and $x,y\ge 1$.
+\item[(ii)] The odd integers $m$ with $20<m<10^{12}$ that are not of the form $p+2^x+7\cdot 2^y$ with
+$p\equiv 5\pmod 6$ prime and $x,y\ge 1$ are exactly
+\[ 25,\quad 31,\quad 1983,\quad 1433987797,\quad 45483661477,\quad 85305551767,\quad 367084269651 . \]
+\item[(iii)] The odd integers $m$ with $30<m<10^{12}$ that are not of the form $p+2^x+11\cdot 2^y$ with
+$p\equiv 1\pmod 6$ prime and $x,y\ge 1$ are exactly $35$, $41$, $47$, $101$, $167$, $2021$ and $119171$,
+in agreement with Sun's conjecture for OEIS A157237 (previously checked to $1.5\cdot 10^{8}$).
+\end{enumerate}
+\end{theorem}
+
+Theorem~\ref{thm:main} has a short proof that can be checked by hand-sized arithmetic
+(Section~\ref{sec:proof}). Theorem~\ref{thm:search} rests on a computer search; the algorithm and
+the measures taken to validate it are described in Section~\ref{sec:algo}. In
+Section~\ref{sec:structure} we ask why $\mz$ fails and how many counterexamples one should expect.
+All programs and data are available at
+\begin{center}\url{https://github.com/yotam1001/sun-a157218-counterexample}\end{center}
+
+\section{Proof of Theorem~\ref{thm:main}}\label{sec:proof}
+
+Suppose $\mz=p+2^x+7\cdot 2^y$ with $x,y\ge 1$ and $p\equiv 1\pmod 6$. Since $\mz\equiv 5\pmod 6$ we
+get $2^x+7\cdot 2^y\equiv 4\pmod 6$, hence $2^x+2^y\equiv 1\pmod 3$. As $2^k\equiv 2$ or $1 \pmod 3$
+according as $k$ is odd or even, this forces $x$ and $y$ to be both odd. Writing $x=2a+1$, $y=2b+1$,
+\[
+  p \;=\; \mz-2\cdot 4^{a}-14\cdot 4^{b},\qquad a,b\ge 0 .
+\]
+There are exactly $342$ pairs of odd $(x,y)$ with $2^x+7\cdot 2^y<\mz$ (namely $1\le x\le 37$,
+$1\le y\le 35$ odd; all $19\cdot 18$ such pairs satisfy the inequality). For each of them
+Table~\ref{tab:cert} in the appendix gives a prime $q<p$ dividing $p$, so $p$ is composite. \qed
+
+\medskip
+The least prime factors are small for most candidates: $5$ divides $90$ of the $342$ numbers, $7$
+divides $81$ of the rest, $11$ a further $34$, and $13$ a further $13$; only $41$ candidates have
+no prime factor below $500$. The largest entry of the table is $q=566999$.
+
+\section{The search}\label{sec:algo}
+
+\subsection{Problem and notation}
+Fix an odd constant $c$ and a residue $r\in\{1,5\}$. Let
+$\mathcal S=\{2^x+c\,2^y: x,y\ge 1\}$ and let $\mathcal P_r$ be the set of primes $\equiv r\pmod 6$.
+We must list all odd $m<N$ with $m\notin \mathcal P_r+\mathcal S$. The set $\mathcal S$ is very thin:
+it has about $(\log_2 N)^2$ elements below $N$ (about $1500$ for $N=10^{12}$), while a candidate
+$m-s$ is prime with probability of order $1/\log N$. A direct test of each $m$ therefore needs a dozen
+or more primality tests on average and, more importantly, hundreds for the rare $m$ that matter.
+
+\subsection{Algorithm}
+We store the indicator of $\mathcal P_r$ on odd numbers as a bitmap $P$, bit $g$ standing for $2g+1$.
+For odd $m=2j+1$ and even $s\in\mathcal S$ the number $m-s$ corresponds to bit $j-s/2$. Hence the
+bitmap $C$ of represented numbers is an OR of shifted copies of $P$:
+\[
+   C \;=\; \bigvee_{s\in\mathcal S} \bigl(P \gg s/2\bigr).
+\]
+The program proceeds in segments of $2^{21}$ bits ($256$\,KB, so that a segment and the data it
+reads stay in the second-level cache):
+\begin{enumerate}
+\item \emph{Sieve.} A segmented sieve of Eratosthenes on odd numbers produces $P$ on the segment;
+a periodic mask keeps only the residue class $r$ modulo $6$. A window of the previous $2^{26}$ bits of
+$P$ is kept.
+\item \emph{Bit-parallel cover.} For the $K=256$ smallest elements $s\in\mathcal S$ the shifted
+bitmap is OR-ed into $C$, $64$ numbers per machine word.
+\item \emph{Residue.} Each $m$ whose bit in $C$ is still zero is treated individually: the
+remaining $s\in\mathcal S$ are tried in increasing order, by a single bit lookup while $s/2$ lies inside the
+window and by a deterministic Miller--Rabin test (twelve prime bases, valid below $2^{64}$) otherwise.
+An $m$ for which no $s$ succeeds is reported.
+\end{enumerate}
+Steps 1--3 decide membership in $\mathcal P_r+\mathcal S$ exactly; no probabilistic step is involved.
+
+\subsection{Cost}
+Let $M=N/2$ be the number of odd integers tested. The sieve costs $O(M\log\log N)$ bit operations
+and uses the $O(\sqrt N/\log N)$ primes below $\sqrt N$. The cover costs $KM/64$ word operations.
+If $u_K$ denotes the proportion of $m$ not covered by the first $K$ shifts, the residue step costs
+at most $u_K M\,|\mathcal S\cap[1,N]|$ lookups. Each shift covers a given $m$ with probability about
+$\delta\approx 3/\log N$ when $m-s$ lies in the right class modulo~$6$ (one shift in four or one in
+two, depending on $m \bmod 6$), so $u_K$ decays geometrically in $K$; for $N=10^{12}$ and $K=256$
+we measured $u_K\approx 7\cdot 10^{-4}$, and about five Miller--Rabin tests per million integers.
+Memory use is $16$\,MB per process. Independent ranges are run in parallel.
+
+On a six-core desktop processor (AMD Ryzen 5 7600X) the program tests about $4\cdot 10^{9}$ integers
+per second; each part of Theorem~\ref{thm:search} took four to six minutes.
+
+\subsection{Validation}
+The statement of Theorem~\ref{thm:search} depends on the correctness of the program, so we record
+the checks that were made.
+\begin{itemize}
+\item For each sequence, the list of unrepresentable $m<2\cdot 10^{5}$ produced by the program equals
+the list produced by a brute-force program written directly from the definition, also when the
+program is run with a tiny window and $K=3$, which forces almost all work through step~3.
+\item The brute-force representation counts reproduce the terms published in the OEIS entries
+A157218, A157225, A157237 and A157242.
+\item The program finds Adamczewski's counterexample $1433987797$ for A157225, and for a related
+conjecture of Sun and Hou on Pell numbers (A154364) it finds the four counterexamples near
+$1.7\cdot 10^{11}$ published by McNeil in 2009.
+\item The run for part (i) was produced by an earlier version of the program with a different
+memory layout; both versions agree on all ranges where both were run.
+\item Each reported counterexample was confirmed by three programs sharing no code with the search:
+a Python script using its own Miller--Rabin test, a Python script using \texttt{sympy}, and PARI/GP's
+\texttt{isprime}.
+\end{itemize}
+The negative statements (``no other counterexample'') have not been reproduced by an independent
+implementation; we invite such a check.
+
+\section{Why this number?}\label{sec:structure}
+
+\subsection{Local densities}
+The residue of $m$ modulo $6$ decides which parities of $(x,y)$ can occur. For A157218:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+$m \bmod 6$ & parities of $(x,y)$ & candidates \\
+\midrule
+$5$ & both odd & $m-2\cdot 4^a-14\cdot 4^b$, \ $a,b\ge 0$ \\
+$3$ & both even & $m-4^a-7\cdot 4^b$, \ $a,b\ge 1$ \\
+$1$ & opposite & twice as many candidates \\
+\bottomrule
+\end{tabular}
+\end{center}
+(For A157225 the three rows are $m\equiv 3,1,5 \pmod 6$ respectively.) Counterexamples should
+therefore come from the first two classes, and all five known ones do.
+
+Fix one of the first two classes, with candidates $m-A\,4^a-B\,4^b$, and a prime $q\ge 5$. Let
+$d=\ord_q(4)$. Whether $q$ divides a candidate depends only on $(a \bmod d,\, b\bmod d)$, so the
+proportion of candidates divisible by $q$ is
+\[
+  \rho_q(m) \;=\; \frac{1}{d^{2}}\,\#\bigl\{(a,b)\in(\mathbb Z/d)^2 : A\,4^a+B\,4^b\equiv m \pmod q\bigr\},
+\]
+a function of $m \bmod q$. For a random integer this proportion would be $1/q$. The prime $q$ thus
+multiplies the expected number of prime candidates by $f_q(m)=(1-\rho_q(m))/(1-1/q)$, and we set
+\[
+   S(m)=\prod_{q\ge 5} f_q(m),\qquad T(m)=\sum_{(x,y)}\frac{3}{\log(m-2^x-7\cdot 2^y)},
+\]
+the sum being over the admissible pairs; $3/\log n$ is the density of primes among integers
+$\equiv 1\pmod 6$ near $n$. Heuristically $m$ has about $E(m)=S(m)\,T(m)$ representations.
+
+The factor $\rho_q$ can be much larger than $1/q$ when $4$ has small order modulo $q$. If $q\mid m$
+and $-B/A$ is a power of $4$ modulo $q$, then $q$ divides the candidate exactly when $b-a$ lies in
+one residue class modulo $d$, so $\rho_q=1/d$. This is what happens for $\mz$ and $q=11$:
+$11\mid \mz$, $d=5$, and one candidate in five is divisible by $11$ instead of one in eleven.
+
+Table~\ref{tab:local} shows that $\mz$ lies in the least favourable residue class for $5$, $7$,
+$11$, $13$, $31$ and $41$ simultaneously. The product over all primes used in our computation is
+$S(\mz)\approx 0.615$, a value that only about $1\%$ of the integers $m\equiv 5\pmod 6$ attain
+(the median is $1.02$; the smallest value over all residue classes is about $0.29$). With
+$T(\mz)=38.4$ this gives $E(\mz)\approx 23.6$ expected representations in place of $38$. After
+removing candidates with a prime factor below $500$ only $41$ of the $342$ remain, and all of them
+turn out to be composite.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{rrrrrr}
+\toprule
+$q$ & $\ord_q(4)$ & $\mz \bmod q$ & $\rho_q(\mz)$ & $\max_m \rho_q(m)$ & $1/q$ \\
+\midrule
+5 & 2 & 1 & 0.2500 & 0.2500 & 0.2000 \\
+7 & 3 & 1 & 0.3333 & 0.3333 & 0.1429 \\
+11 & 5 & 0 & 0.2000 & 0.2000 & 0.0909 \\
+13 & 6 & 3 & 0.0833 & 0.0833 & 0.0769 \\
+17 & 4 & 11 & 0.0625 & 0.1250 & 0.0588 \\
+31 & 5 & 15 & 0.0800 & 0.0800 & 0.0323 \\
+41 & 10 & 27 & 0.0400 & 0.0400 & 0.0244 \\
+\bottomrule
+\end{tabular}
+\caption{Proportion $\rho_q$ of the candidates $\mz-2\cdot 4^a-14\cdot 4^b$ divisible by $q$,
+compared with the largest value over all residue classes of $m$ and with the proportion $1/q$ for
+random integers.}\label{tab:local}
+\end{table}
+
+\subsection{How many counterexamples?}
+Treating the candidates as independent, the probability that $m$ has no representation is about
+\begin{equation}\label{eq:model}
+  \prod_{(x,y)}\Bigl(1-\frac{3\,S(m)}{\log(m-2^x-7\cdot 2^y)}\Bigr).
+\end{equation}
+Summing \eqref{eq:model} over $m$, with $m \bmod q$ uniform and independent for different $q$,
+gives the expected number of counterexamples in a range. Table~\ref{tab:pred} compares this with
+the search. The model is the same for A157218 and A157225, which differ only in the assignment of
+the two parity classes to residues of $m$ modulo~$6$.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+ & \multicolumn{2}{c}{$1.5\cdot 10^{8}\le m<10^{12}$} & $10^{12}\le m<10^{13}$\\
+class of $(x,y)$ & predicted & found (A157218 / A157225) & predicted \\
+\midrule
+both odd & 0.34 & 1 \ / \ 1 & 0.13 \\
+both even & 1.27 & 0 \ / \ 3 & 0.46 \\
+\midrule
+total per conjecture & 1.6 & 1 \ / \ 4 & 0.59 \\
+\bottomrule
+\end{tabular}
+\caption{Expected number of counterexamples under the model \eqref{eq:model}, per conjecture,
+and the numbers found. The five counterexamples are $445466268731$ (both odd) for A157218, and
+$367084269651$ (both odd), $1433987797$, $45483661477$, $85305551767$ (both even) for A157225.}
+\label{tab:pred}
+\end{table}
+
+\begin{heuristic}\label{heur}
+Under the model \eqref{eq:model}, the expected number of counterexamples to A157218 in
+$[10^{k},10^{k+1})$ is $0.6$ for $k=12$, $0.7$ for $k=13$, about one per decade up to $10^{16}$,
+and it keeps growing. In particular the model predicts infinitely many counterexamples.
+\end{heuristic}
+
+Two warnings are in order. First, \eqref{eq:model} is exponentially sensitive to second-order
+choices: replacing the product by $\exp(-S(m)T(m))$ multiplies the predictions by about four, while
+conditioning on the absence of prime factors below $100$ divides them by more than twenty. The
+agreement in Table~\ref{tab:pred} should be read as order-of-magnitude support, no more. Second,
+the model says nothing rigorous.
+
+\begin{question}
+Are there infinitely many odd integers not of the form $p+2^x+7\cdot 2^y$ with $p\equiv 1 \pmod 6$
+prime? Is there one in every interval $[X,2X]$ for large $X$?
+\end{question}
+
+Crocker's proof for $p+2^a+2^b$ uses the factorisation of $2^a+2^b$ and the divisibility of
+$2^{2^n}-1$ by Fermat numbers; we see no analogue for $2^x+7\cdot 2^y$. A covering-congruence proof
+in the style of Erd\H{o}s would require finitely many primes $q$ and residues $m \bmod q$ whose
+exceptional sets cover all pairs $(a,b)$; since each prime covers a proportion of at most about
+$1/\ord_q(4)$ of the pairs, and the pairs covered by different primes overlap, we do not know
+whether such a covering exists.
+
+\section*{Use of AI and acknowledgements}
+The search program, the analysis scripts and the text of this note were written with the help of
+an AI assistant (Claude, Anthropic), which also proposed the family of conjectures to test. All
+statements are backed by programs in the repository cited above, and the counterexample itself can
+be checked independently of them from Table~\ref{tab:cert}. We thank Zhi-Wei Sun for the
+conjectures.
+
+\begin{thebibliography}{9}
+\bibitem{crocker} R.~Crocker, \emph{On the sum of a prime and of two powers of two}, Pacific J. Math.
+\textbf{36} (1971), 103--107.
+\bibitem{erdos} P.~Erd\H{o}s, \emph{On integers of the form $2^k+p$ and some related problems},
+Summa Brasil. Math. \textbf{2} (1950), 113--123.
+\bibitem{oeisopen} T.~Adamczewski, \emph{OEIS Open: How many conjectures can language models turn into
+theorems?}, arXiv:2608.11941 (2026).
+\bibitem{oeis} OEIS Foundation Inc., \emph{The On-Line Encyclopedia of Integer Sequences},
+\url{https://oeis.org}, sequences A157218, A157225, A157237, A154364.
+\bibitem{pan} H.~Pan, \emph{On the integers not of the form $p+2^a+2^b$}, Acta Arith. \textbf{148}
+(2011), 55--61.
+\bibitem{sun} Z.-W.~Sun, \emph{Mixed sums of primes and other terms}, arXiv:0901.3075 (2009).
+\end{thebibliography}
+
+\appendix
+\section{Certificate for Theorem~\ref{thm:main}}
+
+For each pair of odd $x,y$ with $2^x+7\cdot 2^y<\mz$, Table~\ref{tab:cert} gives the least prime
+factor $q$ of $\mz-2^x-7\cdot 2^y$. The table is produced by \texttt{verify.py --certificate} in the
+repository and can be checked with $342$ divisions.
+
+\begin{table}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{cert_table.tex}
+\caption{Least prime factor $q$ of $445466268731-2^x-7\cdot 2^y$ for all $342$ pairs of odd $x,y$.}
+\label{tab:cert}
+\end{table}
+
+\end{document}
