@@ -136,6 +136,10 @@ would have to cover all pairs (a, b).
 ## Credits
 
 Found on 25 November 2026 by Yotam Moshe, Idan Gan Levi, Ohav Betito, Boaz Cohen and Shay Gez Akiva.
+Discovered by @yotam1001; independently checked by @idangnlv.
+
+**Contributors:** @yotam1001 @idangnlv @ohaventura @BoazCohenJ @mrtea7300-netizen
+
 The search code, the analysis and this write-up were produced with Claude (Anthropic) as an AI
 assistant; every claim above is backed by code in this repository that you can run.
 
